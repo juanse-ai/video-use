@@ -306,7 +306,8 @@ def _words_in_range(transcript: dict, t_start: float, t_end: float) -> list[dict
         we = w.get("end")
         if ws is None or we is None:
             continue
-        if we <= t_start or ws >= t_end:
+        midpoint = (ws + we) / 2.0
+        if midpoint < t_start or midpoint >= t_end:
             continue
         out.append(w)
     return out
@@ -363,6 +364,8 @@ def build_master_srt(edl: dict, edit_dir: Path, out_path: Path) -> None:
             out_end = max(0.0, local_end - seg_start) + seg_offset
             if out_end <= out_start:
                 out_end = out_start + 0.4
+            if (out_end - out_start) < 0.1:
+                continue
             text = " ".join((w.get("text") or "").strip() for w in chunk)
             text = re.sub(r"\s+", " ", text).strip()
             # Strip trailing punctuation for cleaner uppercase look
