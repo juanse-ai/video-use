@@ -111,10 +111,71 @@ The full prompt template lives inside the helper script (`helpers/generate_thumb
 - ❌ "Stand still and smile" energy. Always caught-in-motion or caught-mid-thought.
 - ❌ Same gesture repeated across a creator's videos. Always check the previous thumbnail and pick a different pose.
 
-## Next step
-Once `bg_generated.png` exists, follow `prompts/generate-thumbnail.md` to:
-1. Compose the editorial typography (Inter Bold + Playfair Display Italic) over the AI base in HyperFrames.
-2. Render via `hyperframes render` → extract the first frame with ffmpeg → `{{edit_dir}}/thumbnail.jpg`.
+## Typography step (HyperFrames overlay)
+
+Once `bg_generated.png` exists, compose the editorial typography over it in a HyperFrames slot, render to MP4, and extract the first frame as `thumbnail.jpg`.
+
+**Composition** (`{{edit_dir}}/animations/slot_thumbnail/index.html`):
+- 1080×1920 portrait, root `data-duration="0.5"`.
+- Two visual layers + one text layer:
+  - `.bg` with `background-image: url("bg_generated.png");`
+  - `.vignette` — soft gradient bottom 35–45% darkening to `rgba(0,0,0,0.50–0.62)` for text legibility.
+  - `.title` — the typography block (see below).
+- Fonts loaded via Google Fonts CDN:
+  ```html
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Playfair+Display:ital,wght@1,500;1,600&display=swap"
+    rel="stylesheet"
+  />
+  ```
+
+**Typography pattern** (matches the `o8mrneEH...avif` benchmark — italic-serif framing label + sans-bold dominant title):
+- **Line 1** — `Playfair Display`, italic 500, ~80px, lowercase, small framing label.
+- **Line 2** — `Inter`, weight 700, UPPERCASE, ~170px, letter-spacing `-0.025em`, line-height `0.92`, the dominant payoff.
+- **(Optional) Line 3** — same as Line 2 when the payoff needs two lines. Use `<br>` to split.
+
+Left-aligned beats centered for editorial cadence. No colored accent on the title by default. If the user asks for an accent, prefer a thin underline or a single colored letter — never all-caps neon.
+
+### TikTok safe zone — HARD RULE
+
+The 1080×1920 cover gets clipped two ways once uploaded — these values are calibrated against actual uploads, not the published TikTok docs (which understate the cropping):
+
+1. **Profile grid crop.** TikTok shows covers on the profile grid as a near-square (~1080×1440 centered), eating **~360–400px off the bottom** and **~120–160px off the top**. The bottom is the more aggressive cut. Anything within ~120px of any horizontal edge can also get clipped.
+2. **Feed UI overlay.** The bottom ~220–260px is overlaid in the live feed view by the caption preview, share / like / comment column, and music ticker.
+
+The two crops STACK on the bottom — you need to clear the more aggressive of the two (profile grid).
+
+**Always position the text block with:**
+```css
+.title {
+  position: absolute;
+  left: 110px;       /* ~10% horizontal safe inset — clears grid crop */
+  right: 110px;      /* ~10% horizontal safe inset — clears grid crop */
+  bottom: 400px;     /* ~21% vertical safe inset — clears BOTH profile grid AND feed UI */
+  text-align: left;
+}
+```
+
+`bottom < 360px` → text gets cut off on the profile-grid thumbnail.
+`bottom < 220px` → also eaten by the feed UI overlay.
+`left/right < 100px` → text gets cut on the profile grid view.
+
+Both 110px horizontal and 400px bottom are MINIMUMS, not suggestions. If the text block is tall (3+ lines), increase `bottom` further so the TOP of the block stays inside the inner safe area (`top > 200px`).
+
+**Font-size sanity check before rendering:** max single-line width with the 110px safe margins is `1080 − 220 = 860px`. Inter 700 uppercase ≈ 0.55 × font-size per char. So at 170px, max chars on one line ≈ 9. Use `<br>` to split anything longer (`"DEMASIADO<br>TARDE"`, `"QUE ME<br>CAMBIÓ<br>LA VIDA"`).
+
+**Self-eval before declaring done:** after extracting `thumbnail.jpg`, mentally mask the outer ~10% on all sides and the bottom ~13% extra. If any text touches the mask, push it inward and re-render.
+
+### Render + extract
+
+From inside `{{edit_dir}}/animations/slot_thumbnail/`:
+
+```bash
+npx --yes hyperframes render . --format mp4 -f 24 -q standard -o render.mp4
+ffmpeg -y -i render.mp4 -frames:v 1 -q:v 2 ../../thumbnail.jpg
+```
+
+The HF MP4 is a 12-frame nothing-clip; the first frame is the thumbnail. `thumbnail.jpg` lands at `{{edit_dir}}/thumbnail.jpg` ready for upload.
 
 ## File layout reference
 
