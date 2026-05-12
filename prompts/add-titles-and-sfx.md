@@ -26,7 +26,7 @@ Output: `{{edit_dir}}/final_with_titles.mp4` — the trimmed video composited wi
    ```
    That output time is BOTH `data-start` for the title AND `absolute_start_s` for its SFX. Drift between visual and audio = the whole point of this prompt; do not eyeball it.
 4. **Card duration** = `(phrase_end_out - phrase_start_out) + 0.30s tail`, capped at `next_card_start - 0.05s`. Tight cards land hard; long tails feel sluggish.
-5. Pick a SFX per card from the library at `/Users/juanse/Developer/video-use/sound/effects/`. Defaults that work:
+5. Pick a SFX per card from the library at sound\effects. Defaults that work:
    - First card / opening title → `pop-whoosh` (-7 dB)
    - Hard cut between scenes → `an-ideal-swoosh` (-8 dB)
    - Single emphasis word → `pop` (-9 dB)
@@ -54,10 +54,10 @@ In dynamic mode the scale-punch should be bumped to **106%** (default is 102%). 
 
 ## Style (proven defaults — change only if the user asks)
 - Font: Montserrat 900 (Black) via Google Fonts (`@import` in HF composition), UPPERCASE, white `#ffffff`, soft drop shadow, NO hard outline.
-- Position: lower-third, `top: 78%` (avoids face occlusion in portrait talking-head footage).
+- **Position by BOTTOM edge, not top edge.** Anchor every card so its bottom line lands on the **platform safe line at 72% of frame height** (i.e. `bottom: 28%`). This keeps both single-line and two-line cards consistently above the bottom UI strip — anchoring by `top` instead lets two-line cards extend further down into UI territory.
 - **Brand accent color (optional):** when supplied, apply via an `.accent` class to **only the 1–2 payoff cards** — the imperative verb (e.g. `LÁNZALO`), the punchline (e.g. `DEMASIADO TARDE`), or a single hero word. The rest stay white. Color-saturating every card kills the accent.
 - Size class: `s-180`/`s-200`/`s-220`/`s-240`/`s-260`/`s-280`/`s-300`/`s-340`/`s-380` (font-size in px).
-- **Single-line char budget on 1920w portrait** (Montserrat 900 ≈ 0.55× font-size per uppercase char, working in a 1820px container):
+- **Single-line char budget on 1920w portrait** (Montserrat 900 ≈ 0.55× font-size per uppercase char, working in a **1570px** safe container — see "Platform safe areas" below):
   | Size | Max chars (incl. spaces) | Example that fits |
   |---|---|---|
   | s-380 | ~8 | `LÁNZALO` (7) |
@@ -72,7 +72,28 @@ In dynamic mode the scale-punch should be bumped to **106%** (default is 102%). 
   Anything wider than the budget → split with `<br>` into two lines, each ≤8 chars (e.g. `¿CAMBIÓ<br>LA VIDA?`, `DEMASIADO<br>TARDE`, `PRIMER VIDEO<br>EN TIKTOK`). Two-line cards typically render at s-260 (tight phrases) or s-220 (longer phrases). **When in doubt, two lines** — the cost of an overflow ("DEMASIADO TA…" with `RDE` clipped) is a re-render; the cost of two lines is one extra `<br>`.
 
 - Animation: scale-punch 100% → **102% (documentary) / 106% (dynamic)** over 3 frames (0.125s, `power2.out`). Hard cut in/out via the `.clip` visibility window. No fancy fades.
-- Image overlays: rounded corners (radius 36px), 8px white border ring, layered drop shadow, scale-punch from 0.92 with `back.out(2)` over 180ms. Position with `top` so the image sits above (not over) the speaker's face.
+- Image overlays: rounded corners (radius 36px), 8px white border ring, layered drop shadow, scale-punch from 0.92 with `back.out(2)` over 180ms. Position with `top` so the image sits above (not over) the speaker's face. Image overlays follow the SAME platform safe-area rules as title cards.
+
+## Platform safe areas (TikTok / Reels / Shorts)
+
+These are NON-negotiable framing rules for any vertical-format output. Apply to every title card AND every image overlay.
+
+**Bottom UI zone — the bottom ~25–28% of the frame is owned by the platform:** caption, username, hashtags, music attribution, "Follow" / CTA button, swipe-up hint. ANY card text that falls inside this strip will be partially or fully obscured by white-on-white UI chrome that you cannot see in your render.
+
+**Right-rail action column — the rightmost ~14% of the frame is owned by the platform:** like / comment / share / sound icons. Text that extends into this column gets obscured by icons that sit on top of the video.
+
+| Output dimension | Card bottom anchor (Y) | Safe content width | Horizontal margin each side |
+|---|---|---|---|
+| 1080×1920 | y = 1382px (72% from top) | 880px | 100px |
+| 1920×3414 | y = 2458px (72% from top) | 1570px | 175px |
+| Other portrait | y = `0.72 × frame_h` | `0.815 × frame_w` | `0.0925 × frame_w` |
+
+**Implementation contract:**
+1. **Card position:** anchor by BOTTOM edge, NOT top edge. `bottom: 28%` (or compute `top = 0.72 × frame_h − card_height`) so single-line and two-line cards land on a consistent baseline above the bottom UI zone.
+2. **Card width:** the rendered text of the WIDEST line must fit inside the safe content width. Measure with the actual font and shrink the size class if it overflows. If shrinking would drop below s-180, break the phrase into two lines instead — readable size always wins over single-line.
+3. **No text inside the right-rail column.** Centered cards on the safe width clear it by construction; left/right-aligned cards must respect the right margin.
+
+**Tradeoff to accept on portrait talking-head:** lifting cards out of the bottom-fifth into the lower-middle-third occasionally causes two-line cards to land across the speaker's torso or gesturing hands. That is preferable to UI collision — the speaker's FACE stays clear, and the platform UI never sits on the text. If a specific two-line card lands awkwardly on a gesture, lift its bottom anchor for that card only (e.g. `bottom: 35%`) rather than shrinking the text.
 
 ## Opener camera move (when requested)
 
@@ -126,14 +147,17 @@ Where:
 ## Self-eval before declaring done
 After compositing, sample one frame per card at `card_start + 0.2s` (the scale-punch has settled by then; pre-punch the text is at 100% which is fine but the dynamic feel comes from catching it at 106%). For each frame check:
 - Title text is fully on-screen (no horizontal overflow). Overflow = drop one size class OR split to two lines via `<br>`.
-- Title is not occluding the speaker's face / eyes. Lower-third `top: 78%` handles this for portrait talking-head; if the speaker gestures low into frame, lift to `top: 72%`.
+- Title is not occluding the speaker's face / eyes. The 72% bottom-anchor handles this for portrait talking-head; if the speaker gestures into the lower-middle-third, lift the anchor for that specific card to ~65–68%.
+- **Platform safe-area check (REQUIRED for vertical output).** Mentally overlay a TikTok / Reels frame on the sampled image: bottom 25–28% strip (caption / music / CTA / username) and right 14% column (like / comment / share / sound). NO title text or image overlay should fall inside either zone. If anything does, the most common cause is anchoring by `top` instead of by `bottom` — switch to bottom-anchored positioning and re-render. If a specific phrase still collides, two-line it rather than shrinking the font below s-180.
 - Accent color (if used) appears on only the 1–2 payoff cards, not everywhere.
-- Image overlays line up with whatever gesture the speaker makes ("points up" → image lands top-half).
+- Image overlays line up with whatever gesture the speaker makes ("points up" → image lands top-half), AND respect the same safe-area rules as title cards.
 - `ffprobe` the output to confirm duration ≈ trimmed input duration (within ~120ms encoder padding from the HF MOV). Larger drift = truncation from `-shortest`; check the SFX placements.
 
 If a card overflows the frame, drop one size class. If two cards overlap visually, shorten the earlier one's duration to `next_card_start - 0.05s`. Re-render only the HyperFrames MOV (~30s for 24s portrait, ~3–4 min for longer 36s+ pieces); the composite step is ~30s.
 
 ## How I'll iterate
-Natural-language feedback: *"DAVID RUSENKO is too small"*, *"the pop on ESCOGER is too quiet"*, *"add an image at 18s when he says 'lista'"*, *"swap the yellow accent for #3d5eff"*, *"go from dynamic to documentary"*, *"too many cards in the middle — drop PERFECTO and TE GUSTA"*, *"zoom-out faster"*, *"start tighter, go to 1.5×"*. Update the title definitions, SFX assignments, or opener-zoom parameters and re-render. Each lives in one place. Don't re-trim, don't re-transcribe.
+Natural-language feedback: *"DAVID RUSENKO is too small"*, *"the pop on ESCOGER is too quiet"*, *"add an image at 18s when he says 'lista'"*, *"swap the yellow accent for #3d5eff"*, *"go from dynamic to documentary"*, *"too many cards in the middle — drop PERFECTO and TE GUSTA"*, *"zoom-out faster"*, *"start tighter, go to 1.5×"*, *"tiktok buttons are overlapping the captions"* / *"add safe margin"* / *"cards are too close to the bottom"*. Update the title definitions, SFX assignments, opener-zoom parameters, or safe-area anchor and re-render. Each lives in one place. Don't re-trim, don't re-transcribe.
+
+For safe-area feedback: *"add side margins"* = drop safe content width (e.g. 880 → 820 on 1080w). *"buttons overlapping"* / *"too low"* = the cards are anchored by `top` — switch to bottom-anchor at 72%. *"too high"* / *"covering my face"* on a specific card = lift only that card's anchor (e.g. 72% → 65%) rather than shrinking the font.
 
 For zoom feedback specifically: *"faster"* = halve DURATION (and double RATE). *"slower"* = double DURATION (and halve RATE). *"tighter"* = bump `{START_ZOOM}` from 1.3 → 1.4. *"snappier"* = drop DURATION below 0.5s (RATE ≥ 0.6 with START_ZOOM=1.3). Re-render in ~1 min; no HF re-render needed because the zoom is purely an ffmpeg filter on the base video.
