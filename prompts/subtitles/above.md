@@ -63,7 +63,7 @@ The whole video is subtitled. Every word the speaker says appears as a caption. 
   `text-shadow: 0 1px 2px rgba(0,0,0,0.55);`
   This reads as "barely-there" to the viewer but keeps thin white text legible on bright frames. If the user says the shadow is too strong, lower the alpha (`0.55` → `0.4` → `0.3`); if captions are hard to read on a bright shot, raise the alpha toward `0.7` or add a second layer `0 0 4px rgba(0,0,0,0.45)`. Do NOT switch to a hard outline.
 - **Size — MEDIUM.** Captions are read continuously, so they sit smaller than title cards. Use **s-120 to s-140** (font-size in px on the 1920w portrait frame). Default **s-130**. Title cards remain larger (s-180+) so the hierarchy is obvious. If a 4-word chunk overflows the safe content width at s-130, drop to s-120 for that chunk before considering anything else; never two-line the caption track — captions stay single-line.
-- **Position:** centered horizontally; vertically anchored so the caption sits **just below the speaker's chin**, in the center-middle band of the frame — NOT at the bottom. Anchor by the caption's vertical center at roughly **62% of frame height** as the starting point, then nudge per video so the line clears the chin without floating in the middle of the torso. This keeps captions away from both the speaker's face and the bottom UI strip. See **Platform safe areas** — captions must still clear the right-rail column and the bottom UI zone (62% center-anchor does this by construction, but verify in the self-eval).
+- **Position:** centered horizontally; vertically anchored so the caption sits **right above the speaker's head** — snug, with just a small gap above the hairline, NOT floating high near the top of the frame and NOT below the chin. Anchor by the caption's **bottom edge** at roughly **34% of frame height** as the starting point (the caption's bottom line lands just above a normally-framed head), then nudge per video so the line sits close above the hairline with a small clean gap. **Head-clearance rule:** the caption's bottom edge must stay ABOVE the top of the speaker's head — it never overlaps the hair or face. **Top-UI clamp:** the caption's TOP edge must never rise above **11% of frame height** (top strip = back button, Following / For You tabs, search). On a normally-framed clip the 34% anchor sits comfortably between these two limits; the clamp is only a safety net for unusually high framing. If clearing the head would force the caption above the 11% line, hold at the clamp.
 - **Animation:** none, or an extremely subtle 1-frame opacity cut-in. Captions should not punch or scale — they are a uniform reading surface. No word in the caption track animates, scales, or changes weight, including emphasized words.
 
 ---
@@ -96,7 +96,8 @@ Title cards are the original punchy feature: a few big words slammed on screen a
 
 ### Title-card style
 - **Font:** SF Pro Heavy Italic (`{{path/to/SF-Pro-HeavyItalic.otf}}`), UPPERCASE, white `#ffffff`. Same tight low-blur shadow as captions (heavier weight tolerates a slightly stronger shadow if needed). NO hard outline.
-- **Position:** anchor by the BOTTOM edge so the bottom line lands on the platform safe line at **72% of frame height** (`bottom: 28%`). This is distinct from the caption track's 62%-center anchor — title cards sit lower, captions sit at chin level, so the two never stack on the same line.
+- **Position:** title cards sit **right above the speaker's head**, in the same region as the caption track — NOT in the lower third anymore. Anchor by the card's **bottom edge** at roughly **34% of frame height** (the same band as captions), so the card's bottom line lands just above a normally-framed head. **Head-clearance rule (mandatory):** the title card must NEVER cover or overlap the speaker's head — hair, forehead, face, all clear. The card's bottom edge stays above the top of the head with a small gap. For a tall or two-line card, it grows UPWARD from that bottom edge (the bottom stays put above the head, extra lines stack above it). If a two-line card would grow up past the **11% top-UI line**, do not let it enter that strip — instead drop one size class so the card is shorter, and only if it still doesn't fit, lift the whole card's bottom anchor slightly while keeping head clearance. The head and the top-UI strip are both hard limits; the card lives in the band between them.
+- **Caption vs. card stacking:** captions and title cards share the above-the-head region, but they are never on screen at the same time (see "Caption / title-card mutual exclusion" — the caption track is hidden whenever a card shows). So they never physically overlap each other. Both simply use the ~34% bottom-edge band; whichever is showing occupies it.
 - **Brand accent color (optional):** when supplied, apply via an `.accent` class to ONLY the 1–2 payoff cards. Rest stay white. Never applies to captions.
 - **Size class:** `s-180`/`s-200`/`s-220`/`s-240`/`s-260`/`s-280`/`s-300`/`s-340`/`s-380` (px). Title cards are always bigger than the caption track's s-120–140.
 - **Single-line char budget on 1920w portrait** (working in a 1570px safe container):
@@ -195,19 +196,21 @@ NON-negotiable framing rules. Apply to the caption track, emphasis words, title 
 
 **Right-rail column — rightmost ~14% of the frame is owned by the platform** (like / comment / share / sound icons). Any text extending into this column gets obscured.
 
-| Output dimension | Title-card bottom anchor | Caption center anchor | Safe content width | Horizontal margin each side |
+| Output dimension | Caption / title-card bottom anchor | Top-UI clamp (line both must stay below) | Safe content width | Horizontal margin each side |
 |---|---|---|---|---|
-| 1080×1920 | y = 1382px (72%) | y ≈ 1190px (62%) | 880px | 100px |
-| 1920×3414 | y = 2458px (72%) | y ≈ 2117px (62%) | 1570px | 175px |
-| Other portrait | y = `0.72 × frame_h` | y ≈ `0.62 × frame_h` | `0.815 × frame_w` | `0.0925 × frame_w` |
+| 1080×1920 | y ≈ 653px (34%) | top ≥ 211px (11%) | 880px | 100px |
+| 1920×3414 | y ≈ 1161px (34%) | top ≥ 376px (11%) | 1570px | 175px |
+| Other portrait | y ≈ `0.34 × frame_h` | top ≥ `0.11 × frame_h` | `0.815 × frame_w` | `0.0925 × frame_w` |
 
 **Implementation contract:**
-1. **Captions** anchor by vertical CENTER at ~62% of frame height (just below the chin, center-middle band). Nudge per video so the line clears the chin and doesn't float over mid-torso. The 62% band is well clear of the bottom UI zone.
-2. **Title cards** anchor by BOTTOM edge at 72%. Captions at 62% and cards at 72% never collide on the same line.
-3. **Width:** the widest rendered line (caption chunk OR card) must fit inside the safe content width. Captions overflow → drop s-130 to s-120. Title cards overflow → drop one size class, then two-line.
-4. **No text inside the right-rail column.** Centered captions/cards clear it by construction.
+1. **Captions AND title cards** both anchor by BOTTOM edge at ~34% of frame height — the band right above the speaker's head. Nudge per video so the line sits just above the hairline with a small gap.
+2. **Head clearance (hard rule):** neither a caption nor a title card may overlap the speaker's head — bottom edge stays above the top of the head. Tall/two-line cards grow upward from the bottom anchor.
+3. **Top-UI clamp (hard rule):** neither a caption nor a title card may have its top edge above the 11% line. A two-line card that would breach it drops a size class instead.
+4. **Captions and cards never co-occur** — the caption track is hidden under every title card (mutual-exclusion rule) — so although they share the ~34% band, they never overlap each other on screen.
+5. **Width:** the widest rendered line (caption chunk OR card) must fit inside the safe content width. Captions overflow → drop s-130 to s-120. Title cards overflow → drop one size class, then two-line.
+6. **No text inside the right-rail column.** Centered captions/cards clear it by construction.
 
-**Tradeoff to accept:** the 62% caption band sits over the speaker's upper torso. That is correct and intended — it keeps captions below the chin/face and above the bottom UI. If captions land on a distracting gesture, nudge that video's caption anchor down a few percent, but never below ~68% (that risks the bottom UI) and never up onto the face.
+**Tradeoff to accept:** captions and cards now sit in the band right above the head. On a clip where the speaker is framed very high, the head and the 11% top-UI line squeeze that band thin — hold captions/cards as close above the head as the clamp allows, and shrink a two-line card a size class if needed. The head is never covered and the top UI is never breached; a slightly tighter gap above the head is the acceptable cost.
 
 ---
 
@@ -246,7 +249,7 @@ Sample frames and check:
 
 **Caption track:**
 - Sample several frames across the whole video. The caption track is present and correct for the FULL duration — no long stretches of missing captions while the speaker is talking, EXCEPT under title cards where captions are intentionally hidden.
-- Captions are 2–4 word chunks, SF Pro Light Italic, centered, sitting just below the chin (~62% band), not on the face, not in the bottom UI zone.
+- Captions are 2–4 word chunks, SF Pro Light Italic, centered, sitting right above the speaker's head (~34% bottom-anchor band) with a small gap above the hairline — not floating high near the top, not on the face, and the caption's top edge below the 11% top-UI line.
 - Each caption is single-line and fully on-screen — no horizontal overflow. Overflow → drop s-130 to s-120.
 - Shadow is subtle but the white text is legible on bright frames. Too strong → lower alpha; illegible → raise alpha.
 - **Caption / title-card exclusion:** for every title card, sample a frame inside the card's window. The caption track must NOT be visible there — only the card. If a caption shows under a card, the hide logic in Layer 1 step 5 was not applied. Also confirm captions hide ~1 frame before each card appears and resume ~1 frame after each card ends — a clean gap on both edges, no caption peeking at the entry or exit frame.
@@ -257,7 +260,7 @@ Sample frames and check:
 - Each emphasized word has exactly one SFX, word-aligned to when it's spoken.
 
 **Title cards:**
-- Sample one frame per card at `card_start + 0.2s`. Text fully on-screen, in SF Pro Heavy Italic, bigger than the caption track, not occluding the face. Bottom-anchored at 72%.
+- Sample one frame per card at `card_start + 0.2s`. Text fully on-screen, in SF Pro Heavy Italic, bigger than the caption track. Bottom-anchored at ~34%, sitting right above the speaker's head. **Head-clearance check:** the card must NOT cover or touch the speaker's head — hair, forehead, face all clear, with a small gap between the card's bottom edge and the top of the head. If a card overlaps the head, lift its bottom anchor (and/or drop a size class for a two-line card) until the head is clear. Confirm no card's top edge breaches the 11% top-UI line.
 - **Card timing:** the card appears exactly when the speaker starts its first word — verify by sampling a frame at `card_start − 1 frame` (card absent, word not yet started) and `card_start` (card present, word starting). No drift.
 - **No title word leaks into captions.** For each card, sample frames in the ~1s BEFORE `card_start`. The card's word(s) must NOT appear anywhere in the caption track during that pre-roll — the caption chunk containing the title word must be fully suppressed (Layer 1 step 5b). The word's first on-screen appearance is the card itself.
 - Accent color (if used) on only the 1–2 payoff cards.
@@ -279,13 +282,13 @@ Sample frames and check:
 
 Natural-language feedback, per layer:
 
-**Captions:** *"captions are too big / too small"* (adjust s-130 within s-120–140) · *"captions are too high / covering the chin"* (nudge the 62% anchor) · *"captions too low / near the buttons"* (raise toward 60%) · *"shadow too strong"* (lower the rgba alpha) · *"captions hard to read on bright shots"* (raise alpha or add a second shadow layer) · *"use 3-word chunks not 4"* (tighten the chunk size range).
+**Captions:** *"captions are too big / too small"* (adjust s-130 within s-120–140) · *"captions floating too high / too far above his head"* (lower the 34% anchor toward 36–40% so they sit snug above the hairline) · *"captions too low / touching his head / on his face"* (raise the anchor toward 30–32%) · *"captions hitting the top buttons"* (the top-UI clamp is engaging — lower the anchor) · *"shadow too strong"* (lower the rgba alpha) · *"captions hard to read on bright shots"* (raise alpha or add a second shadow layer) · *"use 3-word chunks not 4"* (tighten the chunk size range).
 
 **Emphasis:** *"too many SFX hits"* / *"not enough emphasis"* (adjust the ~1-per-4–8s budget) · *"don't emphasize ESCOGER, emphasize LANZARLO instead"* (change which word gets the SFX) · *"that word should be a title, not just a sound"* (promote the emphasized word to a Layer 3 title card).
 
 **SFX:** *"the pop on RUSENKO is too quiet / loud"* (adjust that one SFX level) · *"swap the ping for a pop on the number"* · *"reduce SFX more"* (apply a further dB cut).
 
-**Title cards:** *"DAVID RUSENKO is too small"* · *"drop the PERFECTO card"* · *"swap the yellow accent for #3d5eff"* · *"go from dynamic to documentary"* · *"the card pops too late / too early"* (the card is not word-aligned — re-anchor `data-start` to the first word's output time) · *"a caption is still showing under the title"* (the Layer 1 step-5 hide logic missed that card window — re-clip the overlapping caption chunk).
+**Title cards:** *"DAVID RUSENKO is too small"* · *"drop the PERFECTO card"* · *"swap the yellow accent for #3d5eff"* · *"go from dynamic to documentary"* · *"the card pops too late / too early"* (the card is not word-aligned — re-anchor `data-start` to the first word's output time) · *"a caption is still showing under the title"* (the Layer 1 step-5 hide logic missed that card window — re-clip the overlapping caption chunk) · *"the title is covering his head / face"* (lift that card's bottom anchor above the head, or drop a size class for a two-line card) · *"titles are too far above his head"* (lower the ~34% card anchor so cards sit snug above the hairline).
 
 **Framing / zoom:** *"buttons overlapping the text"* / *"add safe margin"* (drop safe content width) · *"zoom-out faster"* (halve DURATION, double RATE) · *"start tighter"* (bump START_ZOOM 1.3 → 1.4). The opener zoom is silent — there is no riser to tune.
 
