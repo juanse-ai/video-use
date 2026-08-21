@@ -1,12 +1,12 @@
 # Trim a single-take talking head
 
-Source: `{{path/to/source.MOV}}`
+Source: videos/explainer1Natalia/Google Chrome.mp4
 
 ## Deliver
 1. Transcribe with word-level timestamps (skip if a cached transcript exists for this source).
 2. Find every phrase that appears more than once. For each, keep the take with the clearest delivery / most natural pace; cut the rest.
 3. Lift partial fragments out of false-start takes if they're the only clean version of a beat (e.g. lifting "Y si lo logras..." from inside a longer take that has a 5s pause and a false start in it).
-4. Assemble in script order. Output to `{{source_dir}}/{{source_basename}}_edit.mp4`.
+4. Assemble in script order. Output to videos/Cata/C0380.MP4
 5. Print a report listing each repeated phrase, which take was kept, and why.
 
 ## Style
