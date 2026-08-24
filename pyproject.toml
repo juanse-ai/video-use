@@ -10,6 +10,10 @@ dependencies = [
     "matplotlib",
     "pillow",
     "numpy",
+    "python-dotenv>=1.2.3",
+    "google-genai>=2.19.0",
+    "google-auth-oauthlib>=1.4.0",
+    "google-api-python-client>=2.199.0",
 ]
 
 [project.optional-dependencies]
